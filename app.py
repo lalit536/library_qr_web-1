@@ -68,7 +68,7 @@ def login():
         elif role == "student":
             name = request.form.get("username", "").strip()
             library_code = request.form.get("library_code", "").strip().upper()
-            department = request.form.get("department", "").strip()   # <-- NEW field
+            department = request.form.get("department", "").strip()
             if not name or not library_code or not department:
                 flash("❌ Name, Library Code & Department are required!", "danger")
                 return redirect(url_for("login"))
@@ -79,24 +79,20 @@ def login():
             student = cur.fetchone()
 
             if student:
-                # Agar naam ya department mismatch hai
                 if student["name"] != name:
                     flash("❌ This Library Code belongs to another student!", "danger")
                     conn.close()
                     return redirect(url_for("login"))
-                # Agar department empty hai DB me aur form me mila, update kar do
                 if not student["department"] and department:
                     cur.execute("UPDATE students SET department=? WHERE library_code=?", (department, library_code))
                     conn.commit()
             else:
-                # New student insert
                 cur.execute("INSERT INTO students (name, library_code, department, approved) VALUES (?, ?, ?, ?)",
                             (name, library_code, department, 1))
                 conn.commit()
                 cur.execute("SELECT * FROM students WHERE library_code=?", (library_code,))
                 student = cur.fetchone()
 
-            # Session set
             session["role"] = "student"
             session["student_name"] = student["name"]
             session["branch"] = student["department"] if student["department"] else department
@@ -126,7 +122,7 @@ def admin_dashboard():
     cur.execute("SELECT * FROM books")
     books_list = cur.fetchall()
     cur.execute("""
-        SELECT ib.student_name, ib.library_code, ib.branch, b.title, ib.issue_date, ib.return_date, ib.actual_return
+        SELECT ib.id, ib.student_name, ib.library_code, ib.branch, b.title, ib.issue_date, ib.return_date, ib.actual_return
         FROM issued_books ib
         JOIN books b ON ib.book_id = b.id
         ORDER BY ib.issue_date DESC
@@ -219,6 +215,29 @@ def delete_book(book_id):
         conn.commit()
         flash(f"✅ Book '{book['title']}' deleted successfully!", "success")
     conn.close()
+    return redirect(url_for("admin_dashboard"))
+
+# ---------- Admin Return Book ----------
+@app.route("/admin_return/<int:issue_id>", methods=["POST"])
+def admin_return(issue_id):
+    if session.get("role") != "admin":
+        flash("Unauthorized access!", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM issued_books WHERE id=?", (issue_id,))
+    issued_book = cur.fetchone()
+    if not issued_book:
+        flash("❌ Record not found!", "danger")
+        conn.close()
+        return redirect(url_for("admin_dashboard"))
+
+    cur.execute("UPDATE issued_books SET actual_return=? WHERE id=?", (datetime.now().strftime("%Y-%m-%d"), issue_id))
+    cur.execute("UPDATE books SET available=1 WHERE id=?", (issued_book["book_id"],))
+    conn.commit()
+    conn.close()
+    flash("✅ Book returned successfully!", "success")
     return redirect(url_for("admin_dashboard"))
 
 # ---------- Student Dashboard ----------
@@ -329,7 +348,7 @@ def borrow_book(book_id):
     flash(f"📚 Book '{book['title']}' issued successfully!", "success")
     return redirect(url_for("student_dashboard", name=session.get("student_name")))
 
-# ---------- Return Book ----------
+# ---------- Return Book (Student) ----------
 @app.route("/return_book/<int:issue_id>")
 def return_book(issue_id):
     if session.get("role") != "student":

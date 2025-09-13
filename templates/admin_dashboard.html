@@ -5,19 +5,13 @@
   <title>Admin Dashboard - Library</title>
   <style>
     /* Reset */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: "Poppins", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 50%, #fad390 100%);
       min-height: 100vh;
       color: #333;
     }
-
     header {
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(12px);
@@ -29,140 +23,43 @@
       box-shadow: 0 6px 14px rgba(0,0,0,0.15);
       border-bottom: 2px solid rgba(255,255,255,0.2);
     }
-
-    header h1 {
-      font-size: 24px;
-      font-weight: 600;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-
+    header h1 { font-size: 24px; font-weight: 600; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
     .top-bar a {
-      margin-left: 12px;
-      text-decoration: none;
-      padding: 9px 16px;
-      border-radius: 10px;
-      font-weight: 500;
-      background: white;
-      color: #ff6b81;
-      transition: all 0.3s;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      margin-left: 12px; text-decoration: none; padding: 9px 16px;
+      border-radius: 10px; font-weight: 500; background: white; color: #ff6b81;
+      transition: all 0.3s; box-shadow: 0 3px 8px rgba(0,0,0,0.1);
     }
-
-    .top-bar a:hover {
-      background: #ff6b81;
-      color: white;
-      transform: translateY(-2px);
-    }
-
-    main {
-      padding: 30px;
-    }
-
+    .top-bar a:hover { background: #ff6b81; color: white; transform: translateY(-2px); }
+    main { padding: 30px; }
     h2 {
-      margin: 25px 0;
-      text-align: center;
-      font-size: 26px;
-      font-weight: 600;
-      color: #fff;
+      margin: 25px 0; text-align: center; font-size: 26px; font-weight: 600; color: #fff;
       text-shadow: 0 3px 10px rgba(0,0,0,0.3);
     }
-
     .card {
-      background: rgba(255, 255, 255, 0.9);
-      border-radius: 16px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-      padding: 25px;
-      margin-bottom: 50px;
-      overflow-x: auto;
-      transition: transform 0.3s;
+      background: rgba(255, 255, 255, 0.9); border-radius: 16px; box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+      padding: 25px; margin-bottom: 50px; overflow-x: auto; transition: transform 0.3s;
     }
-    .card:hover {
-      transform: translateY(-4px);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 800px;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    th, td {
-      padding: 14px;
-      text-align: center;
-      font-size: 14px;
-    }
-
+    .card:hover { transform: translateY(-4px); }
+    table { width: 100%; border-collapse: collapse; min-width: 800px; border-radius: 12px; overflow: hidden; }
+    th, td { padding: 14px; text-align: center; font-size: 14px; }
     th {
-      background: linear-gradient(135deg, #ff6b81, #ff9a9e);
-      color: white;
-      font-weight: 600;
-      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #ff6b81, #ff9a9e); color: white; font-weight: 600; letter-spacing: 0.5px;
     }
-
-    tr:nth-child(even) {
-      background: #fdf0f3;
-    }
-
-    tr:hover {
-      background: #ffeaea;
-    }
-
-    .available {
-      color: #27ae60;
-      font-weight: bold;
-    }
-
-    .unavailable {
-      color: #e74c3c;
-      font-weight: bold;
-    }
-
+    tr:nth-child(even) { background: #fdf0f3; }
+    tr:hover { background: #ffeaea; }
+    .available { color: #27ae60; font-weight: bold; }
+    .unavailable { color: #e74c3c; font-weight: bold; }
     .btn {
-      display: inline-block;
-      padding: 7px 13px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: 0.3s;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      display: inline-block; padding: 7px 13px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      text-decoration: none; transition: 0.3s; box-shadow: 0 3px 8px rgba(0,0,0,0.1);
     }
-
-    .btn-edit {
-      background: #f39c12;
-      color: white;
-    }
-    .btn-edit:hover { background: #d68910; transform: scale(1.05); }
-
-    .btn-danger {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+    .btn-danger { background: #e74c3c; color: white; border: none; cursor: pointer; }
     .btn-danger:hover { background: #c0392b; transform: scale(1.05); }
-
-    .btn-success {
-      background: #27ae60;
-      color: white;
-    }
+    .btn-success { background: #27ae60; color: white; border: none; cursor: pointer; }
     .btn-success:hover { background: #1e8449; transform: scale(1.05); }
-
-    .overdue {
-      background: #ffe6e6 !important;
-      color: #c0392b;
-      font-weight: bold;
-    }
-
-    /* Flash Messages */
+    .overdue { background: #ffe6e6 !important; color: #c0392b; font-weight: bold; }
     .flash-message {
-      margin: 15px 0;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: 500;
-      text-align: center;
+      margin: 15px 0; padding: 12px; border-radius: 8px; font-weight: 500; text-align: center;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
     .flash-success { background: #d4edda; color: #155724; }
@@ -172,7 +69,6 @@
 </head>
 <body>
 
-  <!-- Header / Navbar -->
   <header>
     <h1>📚 Admin Dashboard</h1>
     <div class="top-bar">
@@ -184,7 +80,6 @@
   </header>
 
   <main>
-    <!-- Flash messages -->
     {% with messages = get_flashed_messages(with_categories=True) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -193,7 +88,6 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Books Section -->
     <h2>📖 Library Books</h2>
     <div class="card">
       <table>
@@ -219,7 +113,6 @@
             {% endif %}
           </td>
           <td>
-            <a href="/edit/{{ book.id }}" class="btn btn-edit">✏️ Edit</a>
             <form action="{{ url_for('delete_book', book_id=book.id) }}" method="POST" style="display:inline;">
               <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure?');">🗑 Delete</button>
             </form>
@@ -229,7 +122,6 @@
       </table>
     </div>
 
-    <!-- Issued Books Section -->
     <h2>📕 Issued Books</h2>
     <div class="card">
       <table>
@@ -243,7 +135,7 @@
           <th>⚙️ Action</th>
         </tr>
         {% for issue in issued_books %}
-        <tr class="{% if not issue.actual_return and issue.return_date < current_date %}overdue{% endif %}">
+        <tr>
           <td>{{ issue.student_name }}</td>
           <td>{{ issue.branch }}</td>
           <td>{{ issue.title }}</td>
@@ -258,7 +150,9 @@
           </td>
           <td>
             {% if not issue.actual_return %}
-              <a href="/return_book/{{ issue.id }}" class="btn btn-success">✔️ Mark Returned</a>
+              <form action="{{ url_for('admin_return', issue_id=issue.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-success">✔️ Mark Returned</button>
+              </form>
             {% else %}
               <span style="color:green;">✔️ Done</span>
             {% endif %}
@@ -268,6 +162,5 @@
       </table>
     </div>
   </main>
-
 </body>
 </html>
