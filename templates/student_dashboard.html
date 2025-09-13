@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ student.name }}'s Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-size: 2.2em;
+            color: #fff;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+
+        /* Top navigation */
+        .top-bar {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            margin: 5px;
+            font-size: 15px;
+            font-weight: bold;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .btn:hover { transform: translateY(-2px); }
+
+        .btn-primary { background: #0077ff; }
+        .btn-primary:hover { background: #005bb5; }
+        .btn-return { background: #28a745; }
+        .btn-return:hover { background: #1e7e34; }
+        .btn-disabled { background: #aaa; cursor: not-allowed; }
+        .btn-logout { background: #e74c3c; }
+        .btn-logout:hover { background: #c0392b; }
+
+        /* Info card */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 60%;
+            margin: 20px auto;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); }
+
+        /* Student info table */
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .info-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .info-table tr:nth-child(even) { background: #f9f9f9; }
+        .info-label { font-weight: bold; width: 40%; }
+        .info-value { color: #2c3e50; }
+        .info-dept { color: #0077ff; font-weight: bold; }
+        .info-code { color: #28a745; font-weight: bold; }
+
+        /* Search */
+        .search-box { margin: 20px; }
+        .search-box input {
+            padding: 10px;
+            width: 70%;
+            max-width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            outline: none;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* Table */
+        .table-container { width: 100%; overflow-x: auto; }
+        table {
+            border-collapse: collapse;
+            width: 95%;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0px 6px 12px rgba(0,0,0,0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 14px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #0077ff;
+            color: white;
+            font-size: 15px;
+        }
+        tr:nth-child(even) { background: #f9f9f9; }
+        tr:hover { background: #f1f1f1; }
+
+        /* Status */
+        .status { font-weight: bold; }
+        .pending { color: #e67e22; }
+        .done { color: #27ae60; }
+        .overdue { background: #ffe5e5 !important; color: #c0392b; font-weight: bold; }
+
+        /* QR Scanner */
+        #qr-reader { width: 320px; margin: 20px auto; }
+    </style>
+
+    <!-- QR Scanner library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="top-bar">
+        <a href="/" class="btn btn-primary">🏠 Home</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-logout">🚪 Logout</a>
+    </div>
+
+    <h1>📚 Welcome, {{ student.name }}</h1>
+
+    <!-- Student Info -->
+    <div class="card">
+        <h2>👨‍🎓 Student Information</h2>
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Name</td>
+                <td class="info-value">{{ student.name }}</td>
+            </tr>
+            <tr>
+                <td class="info-label">Department</td>
+                <td class="info-dept">{{ student.department }}</td>
+            </tr>
+            <tr>
+                <td class="info-label">Library Code</td>
+                <td class="info-code">{{ student.library_code }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div>
+          {% for category, message in messages %}
+            {% if category == 'success' %}
+              <p style="color: green;">{{ message }}</p>
+            {% elif category == 'danger' %}
+              <p style="color: red;">{{ message }}</p>
+            {% else %}
+              <p style="color: blue;">{{ message }}</p>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Search Bar -->
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('search_books') }}">
+            <input type="text" name="q" placeholder="🔍 Search books by title, author, ISBN...">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    <!-- QR Scanner -->
+    <h2>📷 Scan Book QR to Borrow</h2>
+    <p style="color:#333;">Point your camera at the book’s QR code to borrow instantly.</p>
+    <div id="qr-reader"></div>
+    <form id="borrowForm" method="POST">
+        <input type="hidden" name="book_id" id="bookIdField">
+    </form>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            if (isNaN(decodedText)) {
+                alert("❌ Invalid QR Code. Book ID must be a number.");
+                return;
+            }
+            let form = document.getElementById("borrowForm");
+            document.getElementById("bookIdField").value = decodedText;
+            form.action = "{{ url_for('borrow_book', book_id=0) }}".replace("0", decodedText);
+            form.submit();
+        }
+        let html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+
+    <!-- Issued Books -->
+    <h2>📖 Your Issued Books</h2>
+    <div class="table-container">
+        {% if issued_books %}
+        <table>
+            <tr>
+                <th>Book Title</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            {% for book in issued_books %}
+            <tr class="{% if not book['actual_return'] and book['return_date_obj'] < current_date_obj %}overdue{% endif %}">
+                <td>{{ book['title'] }}</td>
+                <td>{{ book['issue_date'] }}</td>
+                <td>{{ book['return_date'] }}</td>
+                <td class="status">
+                    {% if book['actual_return'] %}
+                        <span class="done">✔ Returned on {{ book['actual_return'] }}</span>
+                    {% else %}
+                        <span class="pending">⏳ Not Returned</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not book['actual_return'] %}
+                        <a href="{{ url_for('return_book', issue_id=book['id']) }}" class="btn btn-return">Return</a>
+                    {% else %}
+                        <button class="btn btn-disabled" disabled>Returned</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p>No books issued yet.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

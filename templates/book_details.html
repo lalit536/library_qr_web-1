@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ book['title'] }} - Book Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f1f1;
+            text-align: center;
+            padding: 40px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 400px;
+            margin: auto;
+            box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+        }
+        .btn {
+            display: inline-block;
+            background: #0077ff;
+            color: white;
+            padding: 12px 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover {
+            background: #005fcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>{{ book['title'] }}</h1>
+        <p><b>Author:</b> {{ book['author'] }}</p>
+        <p><b>ISBN:</b> {{ book['isbn'] }}</p>
+        <p><b>Status:</b> {% if book['available'] %} ✅ Available {% else %} ❌ Not Available {% endif %}</p>
+
+        {% if book['available'] %}
+        <form action="{{ url_for('issue_book', book_id=book['id']) }}" method="post">
+            <button type="submit" class="btn">📖 Issue this Book</button>
+        </form>
+        {% else %}
+        <p style="color: red;">This book is already issued.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

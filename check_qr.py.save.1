@@ -1,0 +1,11 @@
+import cv2
+from pyzbar.pyzbar import decode
+
+# apne QR ka sahi path dalna (jaise static/qrcodes/book_1.png)
+img = cv2.imread("static/qrcodes/book_1.png")
+
+result = decode(img)
+
+for r in result:
+    print("QR Content:", r.data.decode("utf-8"))
+

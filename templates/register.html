@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f7f7;
+            padding: 40px;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; }
+        .form-container {
+            background: white;
+            padding: 30px;
+            width: 400px;
+            margin: 0 auto;
+            border-radius: 10px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+        input[type="text"], input[type="submit"] {
+            padding: 10px;
+            margin: 10px 0;
+            width: 90%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        input[type="submit"] {
+            background: #0077ff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background: #005bb5;
+        }
+        a { text-decoration: none; color: #0077ff; }
+    </style>
+</head>
+<body>
+    <h1>📝 Student Registration</h1>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+      {% if messages %}
+        <div>
+          {% for category, message in messages %}
+            {% if category == 'success' %}
+              <p style="color: green;">{{ message }}</p>
+            {% elif category == 'danger' %}
+              <p style="color: red;">{{ message }}</p>
+            {% else %}
+              <p style="color: blue;">{{ message }}</p>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Registration Form -->
+    <div class="form-container">
+        <form method="POST" action="{{ url_for('student_register') }}">
+            <input type="text" name="name" placeholder="Full Name" required><br>
+            <input type="text" name="library_code" placeholder="Library Code (Unique)" required><br>
+            <input type="text" name="department" placeholder="Department / Branch"><br>
+            <input type="submit" value="Register">
+        </form>
+        <p>Already registered? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+</body>
+</html>

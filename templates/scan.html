@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>📷 QR Code Scanner</h2>
+  <video id="preview"></video>
+  <script src="{{ url_for('static', filename='js/scan.js') }}"></script>
+{% endblock %}

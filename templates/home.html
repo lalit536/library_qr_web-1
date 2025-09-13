@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Library Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            text-align: center;
+            padding: 50px;
+            color: white;
+        }
+        .logo {
+            width: 100px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .section {
+            display: inline-block;
+            width: 250px;
+            height: 150px;
+            margin: 20px;
+            background: white;
+            color: black;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+            padding: 20px;
+            transition: 0.3s;
+        }
+        .section:hover {
+            transform: scale(1.05);
+        }
+        a {
+            text-decoration: none;
+            color: #0077ff;
+            font-weight: bold;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #0077ff;
+            color: white;
+            border-radius: 8px;
+        }
+        .btn:hover {
+            background: #005fcc;
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Library Logo" class="logo">
+
+    <!-- Welcome -->
+    <h1>📚 Welcome to the Library</h1>
+
+    <!-- User Info -->
+    {% if session.get('role') %}
+        <div class="user-info">
+            Logged in as: <b>{{ session.get('role') }}</b>
+            {% if session.get('role') == 'student' %}
+                ({{ session.get('student_name') }})
+            {% endif %}
+            <br>
+            <a href="{{ url_for('logout') }}" class="btn">Logout</a>
+        </div>
+    {% else %}
+        <div class="user-info">
+            <a href="{{ url_for('login') }}" class="btn">Login</a>
+        </div>
+    {% endif %}
+
+    <!-- Sections -->
+    {% if session.get('role') == 'admin' %}
+        <!-- Admin can see both -->
+        <div class="section">
+            <h2>👨‍💼 Admin Section</h2>
+            <p><a href="{{ url_for('admin_dashboard') }}">📖 Manage Books</a></p>
+            <p><a href="{{ url_for('add_book') }}">➕ Add Book</a></p>
+        </div>
+        <div class="section">
+            <h2>👩‍🎓 Student Section</h2>
+            <p><a href="{{ url_for('student_dashboard', name=session.get('student_name','Guest')) }}">📑 My Dashboard</a></p>
+        </div>
+    {% elif session.get('role') == 'student' %}
+        <!-- Student can see only student section -->
+        <div class="section">
+            <h2>👩‍🎓 Student Section</h2>
+            <p><a href="{{ url_for('student_dashboard', name=session.get('student_name')) }}">📑 My Dashboard</a></p>
+        </div>
+    {% endif %}
+</body>
+</html>

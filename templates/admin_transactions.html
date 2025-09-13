@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Admin • Transactions (last 100)</h2>
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>ID</th><th>Action</th><th>Time</th><th>Book</th><th>Book ID</th><th>Roll No</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in txns %}
+    <tr>
+      <td>{{ t.id }}</td>
+      <td>
+        {% if t.action == 'checkout' %}
+          <span class="badge bg-warning text-dark">Checkout</span>
+        {% else %}
+          <span class="badge bg-info text-dark">Check-in</span>
+        {% endif %}
+      </td>
+      <td>{{ t.ts }}</td>
+      <td>{{ t.book_title or '-' }}</td>
+      <td>{{ t.book_id or '-' }}</td>
+      <td>{{ t.roll_no or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

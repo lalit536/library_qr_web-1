@@ -1,0 +1,102 @@
+<!-- templates/search_results.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Search Results</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f9f9f9;
+        }
+        h2 { color: #333; margin-bottom: 10px; }
+        form { margin-bottom: 20px; }
+        input[type="text"] {
+            padding: 8px;
+            width: 300px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background: #0056b3; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        th, td { 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            text-align: left; 
+        }
+        th { background: #f4f4f4; }
+        a { text-decoration: none; color: blue; }
+        a:hover { text-decoration: underline; }
+        .back { 
+            margin-top: 20px; 
+            display: inline-block; 
+            background: #28a745; 
+            color: white; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+        }
+        .back:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Search Results for "{{ query }}"</h2>
+
+    <!-- search bar inside results page also -->
+    <form method="get" action="{{ url_for('search_books') }}">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search again...">
+        <button type="submit">Search</button>
+    </form>
+
+    {% if results %}
+        <table>
+            <tr>
+                <th>📖 Title</th>
+                <th>✍ Author</th>
+                <th>🔑 ISBN</th>
+                <th>📌 Status</th>
+                <th>⚡ Action</th>
+            </tr>
+            {% for book in results %}
+            <tr>
+                <td>{{ book['title'] }}</td>
+                <td>{{ book['author'] }}</td>
+                <td>{{ book['isbn'] }}</td>
+                <td>
+                    {% if book['available'] == 1 %}
+                        ✅ Available
+                    {% else %}
+                        ❌ Not Available
+                    {% endif %}
+                </td>
+                <td>
+                    {% if book['available'] == 1 %}
+                        <a href="{{ url_for('borrow_book', book_id=book['id']) }}">📕 Borrow</a>
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>⚠️ No books found matching "{{ query }}".</p>
+    {% endif %}
+
+    <a href="{{ url_for('student_dashboard', name=session.get('student_name')) }}" class="back">⬅ Back to Dashboard</a>
+</body>
+</html>

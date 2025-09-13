@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>🎓 Student Registration</h2>
+<form method="POST" action="{{ url_for('student_register') }}" class="mt-3">
+  <div class="mb-3">
+    <label class="form-label">Full Name</label>
+    <input type="text" class="form-control" name="name" required>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Branch / Department</label>
+    <input type="text" class="form-control" name="branch" required>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Library Code (Unique)</label>
+    <input type="text" class="form-control" name="library_code" required>
+    <div class="form-text">
+      Example: CSE-117 (यह unique होना चाहिए, एक बार register होने के बाद कोई और इसे use नहीं कर सकता)
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Register</button>
+</form>
+{% endblock %}
