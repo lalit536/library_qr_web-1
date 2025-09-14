@@ -127,7 +127,7 @@
     }
     .qr-section { text-align: center; color: #fff; margin-top: 20px; }
 
-    /* Issued Books */
+    /* Tables */
     .issued-books {
       width: 90%;
       margin: 30px auto;
@@ -218,7 +218,7 @@
   <!-- QR Scanner -->
   <div class="qr-section">
     <h2>📷 Scan Book QR to Borrow</h2>
-    <p>Point your camera at the book’s QR code to borrow instantly.</p>
+    <p>Point your camera at the book’s QR code to send a borrow request.</p>
   </div>
   <div id="qr-reader"></div>
   <form id="borrowForm" method="POST">
@@ -240,6 +240,29 @@
     html5QrcodeScanner.render(onScanSuccess);
   </script>
 
+  <!-- Pending Borrow Requests -->
+  <div class="issued-books">
+    <h2 style="text-align:center; padding:15px;">📩 Pending Borrow Requests</h2>
+    {% if pending_requests %}
+    <table>
+      <tr>
+        <th>Book Title</th>
+        <th>Requested On</th>
+        <th>Status</th>
+      </tr>
+      {% for req in pending_requests %}
+      <tr>
+        <td>{{ req['title'] }}</td>
+        <td>{{ req['request_date'] }}</td>
+        <td class="status pending">⏳ Waiting for Admin Approval</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p style="text-align:center; padding:20px;">No pending requests.</p>
+    {% endif %}
+  </div>
+
   <!-- Issued Books -->
   <div class="issued-books">
     <h2 style="text-align:center; padding:15px;">📖 Your Issued Books</h2>
@@ -252,7 +275,7 @@
         <th>Status</th>
       </tr>
       {% for book in issued_books %}
-      <tr class="{% if not book['actual_return'] and book['return_date_obj'] < current_date_obj %}overdue{% endif %}">
+      <tr class="{% if not book['actual_return'] and book['return_date_obj'] and book['return_date_obj'] < current_date_obj %}overdue{% endif %}">
         <td>{{ book['title'] }}</td>
         <td>{{ book['issue_date'] }}</td>
         <td>{{ book['return_date'] }}</td>

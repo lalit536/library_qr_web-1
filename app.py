@@ -42,6 +42,16 @@ def init_db():
                             department TEXT,
                             approved INTEGER DEFAULT 1
                         )""")
+
+        # Borrow Requests table
+        cursor.execute("""CREATE TABLE IF NOT EXISTS borrow_requests (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            student_username TEXT NOT NULL,  -- actually stores library_code
+                            book_id INTEGER,
+                            request_date TEXT,
+                            status TEXT DEFAULT 'pending'
+                        )""")
+
         conn.commit()
 
 # ---------- Helper ----------
@@ -61,7 +71,6 @@ def login():
         if role == "admin":
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "").strip()
-            # Case-sensitive check
             if username == "admin" and password == "admin123":
                 session["role"] = "admin"
                 session["username"] = "admin"
@@ -73,7 +82,7 @@ def login():
         # ---------- Student Login ----------
         elif role == "student":
             name = request.form.get("username", "").strip()
-            library_code = request.form.get("library_code", "").strip()   # case-sensitive
+            library_code = request.form.get("library_code", "").strip()
             department = request.form.get("department", "").strip()
 
             if not name or not library_code or not department:
@@ -86,7 +95,6 @@ def login():
             student = cur.fetchone()
 
             if student:
-                # Case-sensitive student name check
                 if student["name"] != name:
                     flash("❌ This Library Code belongs to another student!", "danger")
                     conn.close()
@@ -97,7 +105,6 @@ def login():
                                 (department, library_code))
                     conn.commit()
             else:
-                # Insert new student with case-sensitive values
                 cur.execute("""INSERT INTO students (name, library_code, department, approved) 
                                VALUES (?, ?, ?, ?)""",
                             (name, library_code, department, 1))
@@ -134,89 +141,35 @@ def admin_dashboard():
     cur = conn.cursor()
     cur.execute("SELECT * FROM books")
     books_list = cur.fetchall()
+
+    # Issued books
     cur.execute("""
-        SELECT ib.id, ib.student_name, ib.library_code, ib.branch, b.title, ib.issue_date, ib.return_date, ib.actual_return
+        SELECT ib.id, ib.student_name, ib.library_code, ib.branch, 
+               b.title, ib.issue_date, ib.return_date, ib.actual_return
         FROM issued_books ib
         JOIN books b ON ib.book_id = b.id
         ORDER BY ib.issue_date DESC
     """)
     issued_books = cur.fetchall()
+
+    # ✅ Only pending Borrow Requests
+    cur.execute("""
+        SELECT br.id, s.name AS student_name, s.department AS branch, 
+               b.title, br.status, br.request_date, s.library_code
+        FROM borrow_requests br
+        JOIN books b ON br.book_id = b.id
+        JOIN students s ON br.student_username = s.library_code
+        WHERE br.status = 'pending'
+        ORDER BY br.request_date DESC
+    """)
+    borrow_requests = cur.fetchall()
+
     conn.close()
-    return render_template("admin_dashboard.html", books=books_list, issued_books=issued_books,
+    return render_template("admin_dashboard.html",
+                           books=books_list,
+                           issued_books=issued_books,
+                           borrow_requests=borrow_requests,
                            current_date=datetime.now().strftime("%Y-%m-%d"))
-
-# ---------- Add Book ----------
-@app.route("/add_book", methods=["GET", "POST"])
-def add_book():
-    if session.get("role") != "admin":
-        flash("Unauthorized!", "danger")
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        author = request.form.get("author", "").strip()
-        isbn = request.form.get("isbn", "").strip()
-        if not title or not author or not isbn:
-            flash("❌ All fields are required!", "danger")
-            return redirect(url_for("add_book"))
-
-        conn = get_db()
-        cur = conn.cursor()
-        try:
-            cur.execute("INSERT INTO books (title, author, isbn, available) VALUES (?, ?, ?, ?)",
-                        (title, author, isbn, 1))
-            conn.commit()
-            flash("✅ Book added successfully!", "success")
-        except sqlite3.IntegrityError:
-            flash("❌ ISBN already exists!", "danger")
-        conn.close()
-        return redirect(url_for("admin_dashboard"))
-
-    return render_template("add_book.html")
-
-# ---------- Issue Book (Admin) ----------
-@app.route("/issue_book", methods=["GET", "POST"])
-def issue_book():
-    if session.get("role") != "admin":
-        flash("Unauthorized!", "danger")
-        return redirect(url_for("login"))
-
-    conn = get_db()
-    cur = conn.cursor()
-    if request.method == "POST":
-        student_name = request.form.get("student_name", "").strip()
-        library_code = request.form.get("library_code", "").strip()   # case-sensitive
-        branch = request.form.get("branch", "").strip()
-        book_id = request.form.get("book_id")
-        if not student_name or not library_code or not book_id:
-            flash("❌ All fields are required!", "danger")
-            conn.close()
-            return redirect(url_for("issue_book"))
-
-        cur.execute("SELECT * FROM books WHERE id=? AND available=1", (book_id,))
-        book = cur.fetchone()
-        if not book:
-            flash("❌ Book not available!", "danger")
-            conn.close()
-            return redirect(url_for("issue_book"))
-
-        issue_date = datetime.now()
-        return_date = issue_date + timedelta(days=14)
-        cur.execute("""INSERT INTO issued_books 
-                       (student_name, library_code, branch, book_id, issue_date, return_date) 
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (student_name, library_code, branch, book_id,
-                     issue_date.strftime("%Y-%m-%d"), return_date.strftime("%Y-%m-%d")))
-        cur.execute("UPDATE books SET available=0 WHERE id=?", (book_id,))
-        conn.commit()
-        conn.close()
-        flash(f"✅ Book issued to {student_name}!", "success")
-        return redirect(url_for("admin_dashboard"))
-
-    cur.execute("SELECT * FROM books WHERE available=1")
-    available_books = cur.fetchall()
-    conn.close()
-    return render_template("issue_book.html", books=available_books)
 
 # ---------- Delete Book (Admin) ----------
 @app.route("/delete_book/<int:book_id>", methods=["POST"])
@@ -227,18 +180,87 @@ def delete_book(book_id):
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM books WHERE id=?", (book_id,))
-    book = cur.fetchone()
-    if not book:
-        flash("❌ Book not found!", "danger")
-    else:
-        cur.execute("DELETE FROM books WHERE id=?", (book_id,))
-        conn.commit()
-        flash(f"✅ Book '{book['title']}' deleted!", "success")
+
+    cur.execute("SELECT * FROM issued_books WHERE book_id=? AND actual_return IS NULL", (book_id,))
+    issued = cur.fetchone()
+    if issued:
+        flash("❌ Cannot delete! Book is currently issued.", "danger")
+        conn.close()
+        return redirect(url_for("admin_dashboard"))
+
+    cur.execute("DELETE FROM books WHERE id=?", (book_id,))
+    conn.commit()
     conn.close()
+
+    flash("🗑️ Book deleted successfully!", "success")
     return redirect(url_for("admin_dashboard"))
 
-# ---------- Admin Return Book ----------
+# ---------- Approve Borrow Request ----------
+@app.route("/approve_request/<int:request_id>", methods=["POST"])
+def approve_request(request_id):
+    if session.get("role") != "admin":
+        flash("Unauthorized!", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM borrow_requests WHERE id=?", (request_id,))
+    req = cur.fetchone()
+
+    if not req:
+        flash("❌ Request not found!", "danger")
+        conn.close()
+        return redirect(url_for("admin_dashboard"))
+
+    # Check if book available
+    cur.execute("SELECT * FROM books WHERE id=? AND available=1", (req["book_id"],))
+    book = cur.fetchone()
+    if not book:
+        flash("❌ Book not available!", "danger")
+        conn.close()
+        return redirect(url_for("admin_dashboard"))
+
+    # Fetch student info
+    cur.execute("SELECT * FROM students WHERE library_code=?", (req["student_username"],))
+    student = cur.fetchone()
+    if not student:
+        flash("❌ Student not found!", "danger")
+        conn.close()
+        return redirect(url_for("admin_dashboard"))
+
+    issue_date = datetime.now()
+    return_date = issue_date + timedelta(days=14)
+
+    cur.execute("""INSERT INTO issued_books (student_name, library_code, branch, book_id, issue_date, return_date)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (student["name"], student["library_code"], student["department"], req["book_id"],
+                 issue_date.strftime("%Y-%m-%d"), return_date.strftime("%Y-%m-%d")))
+
+    cur.execute("UPDATE books SET available=0 WHERE id=?", (req["book_id"],))
+    cur.execute("UPDATE borrow_requests SET status='approved' WHERE id=?", (request_id,))
+    conn.commit()
+    conn.close()
+
+    flash(f"✅ Book issued to {student['name']} ({student['library_code']})", "success")
+    return redirect(url_for("admin_dashboard"))
+
+# ---------- Reject Borrow Request ----------
+@app.route("/reject_request/<int:request_id>", methods=["POST"])
+def reject_request(request_id):
+    if session.get("role") != "admin":
+        flash("Unauthorized!", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE borrow_requests SET status='rejected' WHERE id=?", (request_id,))
+    conn.commit()
+    conn.close()
+
+    flash("❌ Request rejected!", "info")
+    return redirect(url_for("admin_dashboard"))
+
+# ---------- Mark Book Returned (Admin) ----------
 @app.route("/admin_return/<int:issue_id>", methods=["POST"])
 def admin_return(issue_id):
     if session.get("role") != "admin":
@@ -254,12 +276,41 @@ def admin_return(issue_id):
         conn.close()
         return redirect(url_for("admin_dashboard"))
 
-    cur.execute("UPDATE issued_books SET actual_return=? WHERE id=?", (datetime.now().strftime("%Y-%m-%d"), issue_id))
+    cur.execute("UPDATE issued_books SET actual_return=? WHERE id=?",
+                (datetime.now().strftime("%Y-%m-%d"), issue_id))
     cur.execute("UPDATE books SET available=1 WHERE id=?", (issued_book["book_id"],))
     conn.commit()
     conn.close()
-    flash("✅ Book returned!", "success")
+    flash("✅ Book marked as returned!", "success")
     return redirect(url_for("admin_dashboard"))
+
+# ---------- Borrow Book (Student makes request) ----------
+@app.route("/borrow_book/<int:book_id>")
+def borrow_book(book_id):
+    if session.get("role") != "student":
+        flash("Unauthorized!", "danger")
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    library_code = session.get("library_code")
+
+    cur.execute("SELECT * FROM borrow_requests WHERE book_id=? AND student_username=?", 
+                (book_id, library_code))
+    existing = cur.fetchone()
+    if existing:
+        flash("⚠️ You already requested this book!", "warning")
+        conn.close()
+        return redirect(url_for("student_dashboard", name=session.get("student_name")))
+
+    cur.execute("""INSERT INTO borrow_requests (student_username, book_id, request_date, status)
+                   VALUES (?, ?, ?, 'pending')""",
+                (library_code, book_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+    conn.close()
+
+    flash("📩 Borrow request sent! Waiting for admin approval.", "info")
+    return redirect(url_for("student_dashboard", name=session.get("student_name")))
 
 # ---------- Student Dashboard ----------
 @app.route("/student/<name>")
@@ -279,106 +330,24 @@ def student_dashboard(name):
         SELECT ib.id, b.title, ib.issue_date, ib.return_date, ib.actual_return, b.id as book_id
         FROM issued_books ib
         JOIN books b ON ib.book_id = b.id
-        WHERE ib.student_name=? AND ib.library_code=?
+        WHERE ib.library_code=?
         ORDER BY ib.issue_date DESC
-    """, (name, library_code))
-    issued_books_raw = cur.fetchall()
-    issued_books = []
-    for row in issued_books_raw:
-        book = dict(row)
-        if book.get("return_date"):
-            try:
-                book["return_date_obj"] = datetime.strptime(book["return_date"], "%Y-%m-%d").date()
-            except:
-                book["return_date_obj"] = None
-        else:
-            book["return_date_obj"] = None
-        issued_books.append(book)
-
-    cur.execute("SELECT * FROM students WHERE name=? AND library_code=?", (name, library_code))
-    student = cur.fetchone()
+    """, (library_code,))
+    issued_books = cur.fetchall()
     conn.close()
-    return render_template(
-        "student_dashboard.html",
-        student=student,
-        issued_books=issued_books,
-        current_date=datetime.now().strftime("%Y-%m-%d"),
-        current_date_obj=datetime.now().date()
-    )
 
-# ---------- Search Books ----------
-@app.route("/search_books")
-def search_books():
-    if session.get("role") != "student":
-        flash("Unauthorized!", "danger")
-        return redirect(url_for("login"))
-
-    library_code = session.get("library_code")
-    if not library_code:
-        flash("❌ Session expired!", "danger")
-        return redirect(url_for("login"))
-
-    query = request.args.get("q", "").strip()
-    conn = get_db()
-    cur = conn.cursor()
-    if query:
-        cur.execute("""SELECT * FROM books 
-                       WHERE (title LIKE ? OR author LIKE ? OR isbn LIKE ?)""",
-                    (f"%{query}%", f"%{query}%", f"%{query}%"))
-        results = cur.fetchall()
-    else:
-        results = []
-    conn.close()
-    student = {
-        "name": session.get("student_name"),
-        "department": session.get("branch"),
-        "library_code": library_code
-    }
-    return render_template("search_results.html", results=results, query=query, student=student)
-
-# ---------- Borrow Book ----------
-@app.route("/borrow_book/<int:book_id>")
-def borrow_book(book_id):
-    if session.get("role") != "student":
-        flash("Unauthorized!", "danger")
-        return redirect(url_for("login"))
-
-    library_code = session.get("library_code")
-    if not library_code:
-        flash("❌ Session expired!", "danger")
-        return redirect(url_for("login"))
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM books WHERE id=? AND available=1", (book_id,))
-    book = cur.fetchone()
-    if not book:
-        flash("❌ Book not available!", "danger")
-        conn.close()
-        return redirect(url_for("student_dashboard", name=session.get("student_name")))
-
-    issue_date = datetime.now()
-    return_date = issue_date + timedelta(days=14)
-    cur.execute("""INSERT INTO issued_books (student_name, library_code, branch, book_id, issue_date, return_date)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                (session.get("student_name"), library_code, session.get("branch"),
-                 book_id, issue_date.strftime("%Y-%m-%d"), return_date.strftime("%Y-%m-%d")))
-    cur.execute("UPDATE books SET available=0 WHERE id=?", (book_id,))
-    conn.commit()
-    conn.close()
-    flash(f"📚 Book '{book['title']}' issued!", "success")
-    return redirect(url_for("student_dashboard", name=session.get("student_name")))
+    return render_template("student_dashboard.html",
+                           student={"name": session.get("student_name"),
+                                    "department": session.get("branch"),
+                                    "library_code": library_code},
+                           issued_books=issued_books,
+                           current_date=datetime.now().strftime("%Y-%m-%d"))
 
 # ---------- Return Book (Student) ----------
 @app.route("/return_book/<int:issue_id>")
 def return_book(issue_id):
     if session.get("role") != "student":
         flash("Unauthorized!", "danger")
-        return redirect(url_for("login"))
-
-    library_code = session.get("library_code")
-    if not library_code:
-        flash("❌ Session expired!", "danger")
         return redirect(url_for("login"))
 
     conn = get_db()
@@ -390,12 +359,25 @@ def return_book(issue_id):
         conn.close()
         return redirect(url_for("student_dashboard", name=session.get("student_name")))
 
-    cur.execute("UPDATE issued_books SET actual_return=? WHERE id=?", (datetime.now().strftime("%Y-%m-%d"), issue_id))
+    cur.execute("UPDATE issued_books SET actual_return=? WHERE id=?",
+                (datetime.now().strftime("%Y-%m-%d"), issue_id))
     cur.execute("UPDATE books SET available=1 WHERE id=?", (issued_book["book_id"],))
     conn.commit()
     conn.close()
     flash("✅ Book returned!", "success")
     return redirect(url_for("student_dashboard", name=session.get("student_name")))
+
+# ---------- Search Books ----------
+@app.route("/search_books", methods=["GET"])
+def search_books():
+    query = request.args.get("q", "").strip()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", 
+                (f"%{query}%", f"%{query}%"))
+    results = cur.fetchall()
+    conn.close()
+    return render_template("search_results.html", results=results, query=query)
 
 # ---------- Start Server ----------
 if __name__ == "__main__":

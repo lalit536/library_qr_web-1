@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Record - Library</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    h1 { text-align: center; }
+    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); margin: 20px auto; max-width: 800px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
+    th { background: #ff6b81; color: white; }
+  </style>
+</head>
+<body>
+  <h1>📖 Student Library Record</h1>
+  <div class="card">
+    <h2>{{ student.name }} ({{ student.library_code }})</h2>
+    <p>Department: {{ student.department }}</p>
+
+    <table>
+      <tr>
+        <th>Book Title</th>
+        <th>Issue Date</th>
+        <th>Return Date</th>
+        <th>Status</th>
+      </tr>
+      {% for issue in student_issues %}
+      <tr>
+        <td>{{ issue.title }}</td>
+        <td>{{ issue.issue_date }}</td>
+        <td>{{ issue.return_date }}</td>
+        <td>
+          {% if issue.actual_return %}
+            ✅ Returned ({{ issue.actual_return }})
+          {% else %}
+            ❌ Not Returned
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+</body>
+</html>

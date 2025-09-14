@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Details</title>
+</head>
+<body>
+    <h1>Student Details</h1>
+
+    <p><b>Name:</b> {{ student['name'] }}</p>
+    <p><b>Library Code:</b> {{ student['library_code'] }}</p>
+    <p><b>Department:</b> {{ student['department'] or 'N/A' }}</p>
+
+    <h2>Issued Books</h2>
+    {% if issued_books %}
+        <ul>
+            {% for book in issued_books %}
+                <li>
+                    {{ book['title'] }}  
+                    (Issued: {{ book['issue_date'] }}, 
+                    Return Due: {{ book['return_date'] }}, 
+                    Returned: {{ book['actual_return'] or 'Not Returned' }})
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No books issued.</p>
+    {% endif %}
+
+    <br>
+    <a href="{{ url_for('admin_dashboard') }}">⬅ Back to Dashboard</a>
+</body>
+</html>
