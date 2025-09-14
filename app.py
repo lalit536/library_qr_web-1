@@ -12,6 +12,8 @@ DB_NAME = "library.db"
 def init_db():
     with sqlite3.connect(DB_NAME) as conn:
         cursor = conn.cursor()
+
+        # Books table
         cursor.execute("""CREATE TABLE IF NOT EXISTS books (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             title TEXT NOT NULL,
@@ -19,6 +21,8 @@ def init_db():
                             isbn TEXT UNIQUE NOT NULL,
                             available INTEGER DEFAULT 1
                         )""")
+
+        # Issued books table
         cursor.execute("""CREATE TABLE IF NOT EXISTS issued_books (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             student_name TEXT NOT NULL,
@@ -29,6 +33,8 @@ def init_db():
                             return_date TEXT,
                             actual_return TEXT
                         )""")
+
+        # Students table
         cursor.execute("""CREATE TABLE IF NOT EXISTS students (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             name TEXT NOT NULL,
@@ -44,19 +50,18 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-# ---------- Home ----------
-@app.route("/")
-def home():
-    return render_template("login.html")
-
 # ---------- Login ----------
+@app.route("/", methods=["GET", "POST"])
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         role = request.form.get("role")
+
+        # ---------- Admin Login ----------
         if role == "admin":
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "").strip()
+            # Case-sensitive check
             if username == "admin" and password == "admin123":
                 session["role"] = "admin"
                 session["username"] = "admin"
@@ -65,12 +70,14 @@ def login():
             else:
                 flash("❌ Invalid Admin credentials!", "danger")
 
+        # ---------- Student Login ----------
         elif role == "student":
             name = request.form.get("username", "").strip()
-            library_code = request.form.get("library_code", "").strip().upper()
+            library_code = request.form.get("library_code", "").strip()   # case-sensitive
             department = request.form.get("department", "").strip()
+
             if not name or not library_code or not department:
-                flash("❌ Name, Library Code & Department are required!", "danger")
+                flash("❌ All fields required!", "danger")
                 return redirect(url_for("login"))
 
             conn = get_db()
@@ -79,15 +86,20 @@ def login():
             student = cur.fetchone()
 
             if student:
+                # Case-sensitive student name check
                 if student["name"] != name:
                     flash("❌ This Library Code belongs to another student!", "danger")
                     conn.close()
                     return redirect(url_for("login"))
+
                 if not student["department"] and department:
-                    cur.execute("UPDATE students SET department=? WHERE library_code=?", (department, library_code))
+                    cur.execute("UPDATE students SET department=? WHERE library_code=?",
+                                (department, library_code))
                     conn.commit()
             else:
-                cur.execute("INSERT INTO students (name, library_code, department, approved) VALUES (?, ?, ?, ?)",
+                # Insert new student with case-sensitive values
+                cur.execute("""INSERT INTO students (name, library_code, department, approved) 
+                               VALUES (?, ?, ?, ?)""",
                             (name, library_code, department, 1))
                 conn.commit()
                 cur.execute("SELECT * FROM students WHERE library_code=?", (library_code,))
@@ -109,7 +121,7 @@ def login():
 def logout():
     session.clear()
     flash("Logged out successfully!", "info")
-    return redirect(url_for("home"))
+    return redirect(url_for("login"))
 
 # ---------- Admin Dashboard ----------
 @app.route("/admin_dashboard")
@@ -117,6 +129,7 @@ def admin_dashboard():
     if session.get("role") != "admin":
         flash("Only Admin can access this section!", "danger")
         return redirect(url_for("login"))
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM books")
@@ -136,8 +149,9 @@ def admin_dashboard():
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
     if session.get("role") != "admin":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
+
     if request.method == "POST":
         title = request.form.get("title", "").strip()
         author = request.form.get("author", "").strip()
@@ -145,6 +159,7 @@ def add_book():
         if not title or not author or not isbn:
             flash("❌ All fields are required!", "danger")
             return redirect(url_for("add_book"))
+
         conn = get_db()
         cur = conn.cursor()
         try:
@@ -156,31 +171,35 @@ def add_book():
             flash("❌ ISBN already exists!", "danger")
         conn.close()
         return redirect(url_for("admin_dashboard"))
+
     return render_template("add_book.html")
 
 # ---------- Issue Book (Admin) ----------
 @app.route("/issue_book", methods=["GET", "POST"])
 def issue_book():
     if session.get("role") != "admin":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
+
     conn = get_db()
     cur = conn.cursor()
     if request.method == "POST":
         student_name = request.form.get("student_name", "").strip()
-        library_code = request.form.get("library_code", "").strip().upper()
+        library_code = request.form.get("library_code", "").strip()   # case-sensitive
         branch = request.form.get("branch", "").strip()
         book_id = request.form.get("book_id")
         if not student_name or not library_code or not book_id:
             flash("❌ All fields are required!", "danger")
             conn.close()
             return redirect(url_for("issue_book"))
+
         cur.execute("SELECT * FROM books WHERE id=? AND available=1", (book_id,))
         book = cur.fetchone()
         if not book:
-            flash("❌ Book not available or already issued!", "danger")
+            flash("❌ Book not available!", "danger")
             conn.close()
             return redirect(url_for("issue_book"))
+
         issue_date = datetime.now()
         return_date = issue_date + timedelta(days=14)
         cur.execute("""INSERT INTO issued_books 
@@ -191,8 +210,9 @@ def issue_book():
         cur.execute("UPDATE books SET available=0 WHERE id=?", (book_id,))
         conn.commit()
         conn.close()
-        flash(f"✅ Book issued to {student_name} successfully!", "success")
+        flash(f"✅ Book issued to {student_name}!", "success")
         return redirect(url_for("admin_dashboard"))
+
     cur.execute("SELECT * FROM books WHERE available=1")
     available_books = cur.fetchall()
     conn.close()
@@ -202,8 +222,9 @@ def issue_book():
 @app.route("/delete_book/<int:book_id>", methods=["POST"])
 def delete_book(book_id):
     if session.get("role") != "admin":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT * FROM books WHERE id=?", (book_id,))
@@ -213,7 +234,7 @@ def delete_book(book_id):
     else:
         cur.execute("DELETE FROM books WHERE id=?", (book_id,))
         conn.commit()
-        flash(f"✅ Book '{book['title']}' deleted successfully!", "success")
+        flash(f"✅ Book '{book['title']}' deleted!", "success")
     conn.close()
     return redirect(url_for("admin_dashboard"))
 
@@ -221,7 +242,7 @@ def delete_book(book_id):
 @app.route("/admin_return/<int:issue_id>", methods=["POST"])
 def admin_return(issue_id):
     if session.get("role") != "admin":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
 
     conn = get_db()
@@ -237,19 +258,19 @@ def admin_return(issue_id):
     cur.execute("UPDATE books SET available=1 WHERE id=?", (issued_book["book_id"],))
     conn.commit()
     conn.close()
-    flash("✅ Book returned successfully!", "success")
+    flash("✅ Book returned!", "success")
     return redirect(url_for("admin_dashboard"))
 
 # ---------- Student Dashboard ----------
 @app.route("/student/<name>")
 def student_dashboard(name):
     if session.get("role") != "student" or session.get("student_name") != name:
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
 
     library_code = session.get("library_code")
     if not library_code:
-        flash("❌ Session expired! Please login again.", "danger")
+        flash("❌ Session expired!", "danger")
         return redirect(url_for("login"))
 
     conn = get_db()
@@ -289,12 +310,12 @@ def student_dashboard(name):
 @app.route("/search_books")
 def search_books():
     if session.get("role") != "student":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
 
     library_code = session.get("library_code")
     if not library_code:
-        flash("❌ Session expired! Please login again.", "danger")
+        flash("❌ Session expired!", "danger")
         return redirect(url_for("login"))
 
     query = request.args.get("q", "").strip()
@@ -302,7 +323,7 @@ def search_books():
     cur = conn.cursor()
     if query:
         cur.execute("""SELECT * FROM books 
-                       WHERE title LIKE ? OR author LIKE ? OR isbn LIKE ?""",
+                       WHERE (title LIKE ? OR author LIKE ? OR isbn LIKE ?)""",
                     (f"%{query}%", f"%{query}%", f"%{query}%"))
         results = cur.fetchall()
     else:
@@ -319,12 +340,12 @@ def search_books():
 @app.route("/borrow_book/<int:book_id>")
 def borrow_book(book_id):
     if session.get("role") != "student":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
 
     library_code = session.get("library_code")
     if not library_code:
-        flash("❌ Session expired! Please login again.", "danger")
+        flash("❌ Session expired!", "danger")
         return redirect(url_for("login"))
 
     conn = get_db()
@@ -345,19 +366,19 @@ def borrow_book(book_id):
     cur.execute("UPDATE books SET available=0 WHERE id=?", (book_id,))
     conn.commit()
     conn.close()
-    flash(f"📚 Book '{book['title']}' issued successfully!", "success")
+    flash(f"📚 Book '{book['title']}' issued!", "success")
     return redirect(url_for("student_dashboard", name=session.get("student_name")))
 
 # ---------- Return Book (Student) ----------
 @app.route("/return_book/<int:issue_id>")
 def return_book(issue_id):
     if session.get("role") != "student":
-        flash("Unauthorized access!", "danger")
+        flash("Unauthorized!", "danger")
         return redirect(url_for("login"))
 
     library_code = session.get("library_code")
     if not library_code:
-        flash("❌ Session expired! Please login again.", "danger")
+        flash("❌ Session expired!", "danger")
         return redirect(url_for("login"))
 
     conn = get_db()
@@ -373,7 +394,7 @@ def return_book(issue_id):
     cur.execute("UPDATE books SET available=1 WHERE id=?", (issued_book["book_id"],))
     conn.commit()
     conn.close()
-    flash("✅ Book returned successfully!", "success")
+    flash("✅ Book returned!", "success")
     return redirect(url_for("student_dashboard", name=session.get("student_name")))
 
 # ---------- Start Server ----------
