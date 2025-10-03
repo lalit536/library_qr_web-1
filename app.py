@@ -71,7 +71,7 @@ def login():
         if role == "admin":
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "").strip()
-            if username == "admin" and password == "admin123":
+            if username == "admin" and password == "88888888":
                 session["role"] = "admin"
                 session["username"] = "admin"
                 flash("✅ Admin logged in successfully!", "success")
